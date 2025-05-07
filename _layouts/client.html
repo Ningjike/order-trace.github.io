@@ -1,0 +1,73 @@
+---
+layout: default
+---
+<div class="client-profile">
+    <div class="row">
+        <div class="col-md-8">
+            <h1>{{ page.title }}</h1>
+            <div class="client-content mb-4">
+                {{ content }}
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">客户信息</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>客户代码：</strong>{{ page.client_code }}</li>
+                        <li><strong>时区：</strong>{{ page.timezone }}</li>
+                        <li><strong>语言：</strong>{{ page.language }}</li>
+                        <li><strong>国家：</strong>{{ page.country }}</li>
+                        <li><strong>联系电话：</strong>{{ page.contact }}</li>
+                        <li><strong>邮箱：</strong>{{ page.email }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="shipments-section mt-4">
+        <h2>最近运单</h2>
+        {% assign client_shipments = site.data.shipments | where: "client_code", page.client_code | sort: "created_at" | reverse %}
+        
+        {% if client_shipments.size > 0 %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>运单号</th>
+                        <th>创建时间</th>
+                        <th>运输方式</th>
+                        <th>状态</th>
+                        <th>目的地</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for shipment in client_shipments limit:5 %}
+                    <tr>
+                        <td><a href="{{ '/#' | append: shipment.tracking_number | relative_url }}">{{ shipment.tracking_number }}</a></td>
+                        <td>{{ shipment.created_at | date: "%Y-%m-%d %H:%M" }}</td>
+                        <td>{{ shipment.transport_mode }}</td>
+                        <td>
+                            {% case shipment.status %}
+                            {% when '未发货' %}
+                            <span class="badge bg-warning">未发货</span>
+                            {% when '已发货' %}
+                            <span class="badge bg-info">已发货</span>
+                            {% when '运输中' %}
+                            <span class="badge bg-primary">运输中</span>
+                            {% when '已到达' %}
+                            <span class="badge bg-success">已到达</span>
+                            {% endcase %}
+                        </td>
+                        <td>{{ shipment.destination }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">暂无运单记录</p>
+        {% endif %}
+    </div>
+</div> 
