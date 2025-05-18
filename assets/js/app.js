@@ -131,8 +131,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (user.role === 'trader') {
       document.getElementById('traderPanel').style.display = '';
-      let currentShipments = shipments;
-      renderShipmentsTable(currentShipments, 'shipmentTableContainer', true);
+      // 每次都从localStorage获取最新数据
+      function refreshTraderTable(keyword = '') {
+        const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+        let filtered = shipments;
+        if (keyword) {
+          filtered = shipments.filter(s =>
+            s.customer_code.includes(keyword) ||
+            s.status.includes(keyword) ||
+            s.date.includes(keyword) ||
+            s.goods.includes(keyword)
+          );
+        }
+        renderShipmentsTable(filtered, 'shipmentTableContainer', true, keyword);
+      }
+
+      refreshTraderTable();
 
       // 新增/编辑运单表单提交
       document.getElementById('shipmentForm').onsubmit = function(e) {
@@ -157,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function() {
           shipments.push({ shipment_id: newId, customer_code: customerCode, date, goods, status, remark });
         }
         localStorage.setItem('shipments', JSON.stringify(shipments));
-        renderShipmentsTable(shipments, 'shipmentTableContainer', true);
+        refreshTraderTable(document.getElementById('traderSearchInput').value.trim());
         // 关闭模态框
         bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
         // 清空表单
@@ -173,15 +187,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // 搜索功能
       document.getElementById('traderSearchInput').addEventListener('input', function() {
-        const keyword = this.value.trim();
-        currentShipments = shipments.filter(s =>
-          s.customer_code.includes(keyword) ||
-          s.status.includes(keyword) ||
-          s.date.includes(keyword) ||
-          s.goods.includes(keyword)
-        );
-        renderShipmentsTable(currentShipments, 'shipmentTableContainer', true, keyword);
+        refreshTraderTable(this.value.trim());
       });
+
+      // 覆盖删除运单函数
+      window.deleteShipment = function(shipmentId) {
+        if (!confirm('确定要删除该运单吗？')) return;
+        let shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+        shipments = shipments.filter(s => s.shipment_id !== shipmentId);
+        localStorage.setItem('shipments', JSON.stringify(shipments));
+        refreshTraderTable(document.getElementById('traderSearchInput').value.trim());
+      };
 
     } else if (user.role === 'customer') {
       document.getElementById('customerPanel').style.display = '';
