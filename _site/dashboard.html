@@ -19,11 +19,17 @@
   <div class="container my-4">
     <div id="traderPanel" style="display:none;">
       <h4>所有运单</h4>
-      <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addModal">新增运单</button>
+      <div class="d-flex mb-2">
+        <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#addModal">新增运单</button>
+        <input type="text" class="form-control w-auto" id="traderSearchInput" placeholder="搜索客户代码/状态/日期/货物">
+      </div>
       <div id="shipmentTableContainer"></div>
     </div>
     <div id="customerPanel" style="display:none;">
       <h4>我的运单</h4>
+      <div class="mb-2">
+        <input type="text" class="form-control w-auto" id="customerSearchInput" placeholder="搜索状态/日期/货物">
+      </div>
       <div id="customerShipmentTableContainer"></div>
     </div>
   </div>
