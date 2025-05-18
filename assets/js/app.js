@@ -110,6 +110,25 @@ function deleteShipment(shipmentId) {
   renderShipmentsTable(shipments, 'shipmentTableContainer', true);
 }
 
+function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
+  if (!shipments || shipments.length === 0) {
+    alert('没有可导出的数据！');
+    return;
+  }
+  const header = ['运单编号', '客户代码', '发货日期', '货物信息', '状态', '备注'];
+  const rows = shipments.map(s => [
+    s.shipment_id, s.customer_code, s.date, s.goods, s.status, s.remark || ''
+  ]);
+  let csvContent = header.join(',') + '\n' + rows.map(r => r.map(x => `"${(x || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // 登录页面逻辑已在前面实现
 
@@ -131,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (user.role === 'trader') {
       document.getElementById('traderPanel').style.display = '';
-      // 每次都从localStorage获取最新数据
+      let lastTraderFiltered = [];
       function refreshTraderTable(keyword = '') {
         const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
         let filtered = shipments;
@@ -143,10 +162,15 @@ document.addEventListener('DOMContentLoaded', function() {
             s.goods.includes(keyword)
           );
         }
+        lastTraderFiltered = filtered;
         renderShipmentsTable(filtered, 'shipmentTableContainer', true, keyword);
       }
 
       refreshTraderTable();
+
+      document.getElementById('traderExportBtn').onclick = function() {
+        exportShipmentsToCSV(lastTraderFiltered, 'shipments_trader.csv');
+      };
 
       // 新增/编辑运单表单提交
       document.getElementById('shipmentForm').onsubmit = function(e) {
@@ -201,19 +225,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } else if (user.role === 'customer') {
       document.getElementById('customerPanel').style.display = '';
-      let myShipments = shipments.filter(s => s.customer_code === user.customer_code);
-      renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
-
-      // 搜索功能
-      document.getElementById('customerSearchInput').addEventListener('input', function() {
-        const keyword = this.value.trim();
-        const filtered = myShipments.filter(s =>
-          s.status.includes(keyword) ||
-          s.date.includes(keyword) ||
-          s.goods.includes(keyword)
-        );
+      let lastCustomerFiltered = [];
+      function refreshCustomerTable(keyword = '') {
+        const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+        let myShipments = shipments.filter(s => s.customer_code === user.customer_code);
+        let filtered = myShipments;
+        if (keyword) {
+          filtered = myShipments.filter(s =>
+            s.status.includes(keyword) ||
+            s.date.includes(keyword) ||
+            s.goods.includes(keyword)
+          );
+        }
+        lastCustomerFiltered = filtered;
         renderShipmentsTable(filtered, 'customerShipmentTableContainer', false, keyword);
+      }
+      refreshCustomerTable();
+
+      document.getElementById('customerSearchInput').addEventListener('input', function() {
+        refreshCustomerTable(this.value.trim());
       });
+
+      document.getElementById('customerExportBtn').onclick = function() {
+        exportShipmentsToCSV(lastCustomerFiltered, 'shipments_customer.csv');
+      };
     }
   }
 });
