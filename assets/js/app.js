@@ -48,7 +48,7 @@ if (!localStorage.getItem('shipments')) {
   localStorage.setItem('shipments', JSON.stringify(defaultShipments));
 }
 
-function renderShipmentsTable(shipments, containerId, isTrader) {
+function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   let html = `<table class="table table-bordered table-hover align-middle">
     <thead class="table-light">
       <tr>
@@ -66,15 +66,18 @@ function renderShipmentsTable(shipments, containerId, isTrader) {
     html += `<tr><td colspan="${isTrader ? 7 : 6}" class="text-center">暂无数据</td></tr>`;
   } else {
     shipments.forEach(s => {
+      // 高亮关键词（可选）
+      const highlight = (text) => keyword ? text.replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : text;
       html += `<tr>
-        <td>${s.shipment_id}</td>
-        <td>${s.customer_code}</td>
-        <td>${s.date}</td>
-        <td>${s.goods}</td>
-        <td>${s.status}</td>
-        <td>${s.remark || ''}</td>
+        <td>${highlight(s.shipment_id)}</td>
+        <td>${highlight(s.customer_code)}</td>
+        <td>${highlight(s.date)}</td>
+        <td>${highlight(s.goods)}</td>
+        <td>${highlight(s.status)}</td>
+        <td>${highlight(s.remark || '')}</td>
         ${isTrader ? `<td>
           <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s.shipment_id}')">删除</button>
         </td>` : ''}
       </tr>`;
     });
@@ -128,7 +131,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (user.role === 'trader') {
       document.getElementById('traderPanel').style.display = '';
-      renderShipmentsTable(shipments, 'shipmentTableContainer', true);
+      let currentShipments = shipments;
+      renderShipmentsTable(currentShipments, 'shipmentTableContainer', true);
 
       // 新增/编辑运单表单提交
       document.getElementById('shipmentForm').onsubmit = function(e) {
@@ -167,10 +171,33 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('shipmentId').value = '';
       });
 
+      // 搜索功能
+      document.getElementById('traderSearchInput').addEventListener('input', function() {
+        const keyword = this.value.trim();
+        currentShipments = shipments.filter(s =>
+          s.customer_code.includes(keyword) ||
+          s.status.includes(keyword) ||
+          s.date.includes(keyword) ||
+          s.goods.includes(keyword)
+        );
+        renderShipmentsTable(currentShipments, 'shipmentTableContainer', true, keyword);
+      });
+
     } else if (user.role === 'customer') {
       document.getElementById('customerPanel').style.display = '';
-      const myShipments = shipments.filter(s => s.customer_code === user.customer_code);
+      let myShipments = shipments.filter(s => s.customer_code === user.customer_code);
       renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
+
+      // 搜索功能
+      document.getElementById('customerSearchInput').addEventListener('input', function() {
+        const keyword = this.value.trim();
+        const filtered = myShipments.filter(s =>
+          s.status.includes(keyword) ||
+          s.date.includes(keyword) ||
+          s.goods.includes(keyword)
+        );
+        renderShipmentsTable(filtered, 'customerShipmentTableContainer', false, keyword);
+      });
     }
   }
 });
