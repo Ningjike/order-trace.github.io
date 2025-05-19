@@ -48,6 +48,22 @@ if (!localStorage.getItem('shipments')) {
   localStorage.setItem('shipments', JSON.stringify(defaultShipments));
 }
 
+const defaultCustomers = [
+  {
+    customer_code: "NTS-2304",
+    name: "Ruixin",
+    contact: "+966 551234567",
+    country: "SA",
+    language: "ar",
+    timezone: 3
+  }
+];
+
+// 初始化客户数据到 localStorage
+if (!localStorage.getItem('customers')) {
+  localStorage.setItem('customers', JSON.stringify(defaultCustomers));
+}
+
 function getStatusBadge(status) {
   if (status.includes('已发货')) return `<span class="badge bg-success">${status}</span>`;
   if (status.includes('待发货')) return `<span class="badge bg-warning text-dark">${status}</span>`;
