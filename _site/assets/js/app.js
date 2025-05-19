@@ -1,37 +1,37 @@
 // 示例用户数据（实际可从 _data/users.json 读取后存入 localStorage）
 const defaultUsers = [
-    { username: "trader1", password: "123456", role: "trader" },
-    { username: "customerA", password: "abc123", role: "customer", customer_code: "CUST001" }
-  ];
-  
-  // 初始化用户数据到 localStorage
-  if (!localStorage.getItem('users')) {
-    localStorage.setItem('users', JSON.stringify(defaultUsers));
+  { username: "trader1", password: "123456", role: "trader" },
+  { username: "customerA", password: "abc123", role: "customer", customer_code: "CUST001" }
+];
+
+// 初始化用户数据到 localStorage
+if (!localStorage.getItem('users')) {
+  localStorage.setItem('users', JSON.stringify(defaultUsers));
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const user = users.find(u => u.username === username && u.password === password);
+      const errorDiv = document.getElementById('loginError');
+      if (user) {
+        // 登录成功，保存当前用户到 sessionStorage
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+        // 跳转到看板页面
+        window.location.href = 'dashboard.html';
+      } else {
+        errorDiv.textContent = "用户名或密码错误";
+        errorDiv.style.display = "block";
+      }
+    });
   }
-  
-  document.addEventListener('DOMContentLoaded', function() {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-      loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const users = JSON.parse(localStorage.getItem('users') || '[]');
-        const user = users.find(u => u.username === username && u.password === password);
-        const errorDiv = document.getElementById('loginError');
-        if (user) {
-          // 登录成功，保存当前用户到 sessionStorage
-          sessionStorage.setItem('currentUser', JSON.stringify(user));
-          // 跳转到看板页面
-          window.location.href = 'dashboard.html';
-        } else {
-          errorDiv.textContent = "用户名或密码错误";
-          errorDiv.style.display = "block";
-        }
-      });
-    }
-  });
-  // 示例运单数据（实际可从 _data/shipments.json 读取后存入 localStorage）
+});
+// 示例运单数据（实际可从 _data/shipments.json 读取后存入 localStorage）
 const defaultShipments = [
   {
     shipment_id: "NTS2304_Elec_10_20250506123000",
@@ -82,43 +82,42 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   let html = `<table class="table table-bordered table-hover align-middle">
     <thead class="table-light">
       <tr>
-        <th>运单编号</th>
-        <th>客户代码</th>
-        <th>发货港口时区</th>
-        <th>货物简称</th>
-        <th>货物明细</th>
-        <th>包裹数量</th>
-        <th>运输方式</th>
-        <th>预计运输天数</th>
-        <th>状态</th>
-        <th>发货日期</th>
-        <th>到达时间</th>
-        <th>提货时间</th>
+        <th>运单编号</th>         <!-- tracking_number -->
+        <th>客户代码</th>         <!-- client_code -->
+        <th>运输方式</th>         <!-- transport_mode -->
+        <th>状态</th>             <!-- status -->
+        <th>建立时间</th>         <!-- created_at -->
+        <th>发货日期</th>         <!-- shipped_date -->
+        <th>目的地</th>           <!-- destination -->
+        <th>物品数量</th>         <!-- items_count -->
+        <th>总重量</th>           <!-- total_weight -->
         ${isTrader ? '<th>操作</th>' : ''}
       </tr>
     </thead>
     <tbody>`;
   if (shipments.length === 0) {
-    html += `<tr><td colspan="${isTrader ? 13 : 12}" class="text-center">暂无数据</td></tr>`;
+    html += `<tr><td colspan="${isTrader ? 10 : 9}" class="text-center">暂无数据</td></tr>`; // 调整 colspan
   } else {
     shipments.forEach(s => {
-      const highlight = (text) => keyword ? String(text).replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : text;
+      // 确保字段存在且非 null/undefined 再高亮
+      const highlight = (text) => {
+        const str = String(text || ''); // 将 text 转换为字符串，避免 undefined/null 报错
+        return keyword ? str.replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : str;
+      };
       html += `<tr>
-        <td>${highlight(s.shipment_id)}</td>
-        <td>${highlight(s.customer_code)}</td>
-        <td>${highlight(s.port_timezone)}</td>
-        <td>${highlight(s.goods_short)}</td>
-        <td>${highlight(s.goods_detail)}</td>
-        <td>${highlight(s.package_count)}</td>
+        <td>${highlight(s.tracking_number)}</td>
+        <td>${highlight(s.client_code)}</td>
         <td>${highlight(s.transport_mode)}</td>
-        <td>${highlight(s.estimated_days)}</td>
-        <td>${getStatusBadge(highlight(s.status))}</td>
-        <td>${highlight(s.sent_date)}</td>
-        <td>${highlight(s.arrived_date)}</td>
-        <td>${highlight(s.picked_date)}</td>
+        <td>${getStatusBadge(highlight(s.status))}</td> // 状态使用Badge
+        <td>${highlight(s.created_at)}</td>
+        <td>${highlight(s.shipped_date)}</td>
+        <td>${highlight(s.destination)}</td>
+        <td>${highlight(s.items_count)}</td>
+        <td>${highlight(s.total_weight)}</td>
         ${isTrader ? `<td>
-          <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s.shipment_id}')">删除</button>
+          <!-- 注意：编辑/删除功能可能需要调整以匹配新字段名 -->
+          <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.tracking_number}')">编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s.tracking_number}')">删除</button>
         </td>` : ''}
       </tr>`;
     });
@@ -126,6 +125,10 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   html += `</tbody></table>`;
   document.getElementById(containerId).innerHTML = html;
 }
+
+// 注意：editShipment 和 deleteShipment 函数也需要根据 tracking_number 字段进行调整！
+
+// ... existing code ...
 
 function editShipment(shipmentId) {
   const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
@@ -185,7 +188,7 @@ function parseCSV(csvText) {
   });
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // 登录页面逻辑已在前面实现
 
   // 看板页面逻辑
@@ -197,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.getElementById('userRole').textContent = user.role === 'trader' ? '贸易商' : '客户';
 
-    document.getElementById('logoutBtn').onclick = function() {
+    document.getElementById('logoutBtn').onclick = function () {
       sessionStorage.removeItem('currentUser');
       window.location.href = 'login.html';
     };
@@ -206,14 +209,18 @@ document.addEventListener('DOMContentLoaded', function() {
     fetch('/shipments.json')
       .then(res => res.json())
       .then(shipments => {
+        console.log("Fetched Shipments Data:", shipments);
         if (user.role === 'trader') {
           document.getElementById('traderPanel').style.display = '';
           renderShipmentsTable(shipments, 'shipmentTableContainer', true);
         } else if (user.role === 'customer') {
           document.getElementById('customerPanel').style.display = '';
-          const myShipments = shipments.filter(s => s.customer_code === user.customer_code);
+          const myShipments = shipments.filter(s => s.client_code === user.customer_code);
           renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
         }
+      })
+      .catch(error => {
+        console.error("Error fetching shipments.json:", error);
       });
   }
 });
