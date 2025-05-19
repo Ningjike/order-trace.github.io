@@ -60,7 +60,12 @@
           </div>
           <div class="mb-3">
             <label for="formStatus" class="form-label">状态</label>
-            <input type="text" class="form-control" id="formStatus" required>
+            <select class="form-control" id="formStatus" required>
+              <option value="">请选择状态</option>
+              <option value="已发货">已发货</option>
+              <option value="待发货">待发货</option>
+              <option value="异常">异常</option>
+            </select>
           </div>
           <div class="mb-3">
             <label for="formRemark" class="form-label">备注</label>
