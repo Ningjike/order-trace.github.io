@@ -120,7 +120,8 @@ function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
     s.shipment_id, s.customer_code, s.date, s.goods, s.status, s.remark || ''
   ]);
   let csvContent = header.join(',') + '\n' + rows.map(r => r.map(x => `"${(x || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  // 关键：加上UTF-8 BOM
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = filename;
@@ -150,7 +151,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (user.role === 'trader') {
       document.getElementById('traderPanel').style.display = '';
-      let lastTraderFiltered = [];
       function refreshTraderTable(keyword = '') {
         const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
         let filtered = shipments;
@@ -169,7 +169,18 @@ document.addEventListener('DOMContentLoaded', function() {
       refreshTraderTable();
 
       document.getElementById('traderExportBtn').onclick = function() {
-        exportShipmentsToCSV(lastTraderFiltered, 'shipments_trader.csv');
+        const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+        const keyword = document.getElementById('traderSearchInput').value.trim();
+        let filtered = shipments;
+        if (keyword) {
+          filtered = shipments.filter(s =>
+            s.customer_code.includes(keyword) ||
+            s.status.includes(keyword) ||
+            s.date.includes(keyword) ||
+            s.goods.includes(keyword)
+          );
+        }
+        exportShipmentsToCSV(filtered, 'shipments_trader.csv');
       };
 
       // 新增/编辑运单表单提交
@@ -247,7 +258,19 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       document.getElementById('customerExportBtn').onclick = function() {
-        exportShipmentsToCSV(lastCustomerFiltered, 'shipments_customer.csv');
+        const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+        const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        let myShipments = shipments.filter(s => s.customer_code === user.customer_code);
+        const keyword = document.getElementById('customerSearchInput').value.trim();
+        let filtered = myShipments;
+        if (keyword) {
+          filtered = myShipments.filter(s =>
+            s.status.includes(keyword) ||
+            s.date.includes(keyword) ||
+            s.goods.includes(keyword)
+          );
+        }
+        exportShipmentsToCSV(filtered, 'shipments_customer.csv');
       };
     }
   }
