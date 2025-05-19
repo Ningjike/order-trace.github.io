@@ -84,24 +84,38 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
       <tr>
         <th>运单编号</th>
         <th>客户代码</th>
-        <th>发货日期</th>
-        <th>货物信息</th>
+        <th>发货港口时区</th>
+        <th>货物简称</th>
+        <th>货物明细</th>
+        <th>包裹数量</th>
+        <th>运输方式</th>
+        <th>预计运输天数</th>
         <th>状态</th>
+        <th>发货日期</th>
+        <th>到达时间</th>
+        <th>提货时间</th>
         ${isTrader ? '<th>操作</th>' : ''}
       </tr>
     </thead>
     <tbody>`;
   if (shipments.length === 0) {
-    html += `<tr><td colspan="${isTrader ? 6 : 5}" class="text-center">暂无数据</td></tr>`;
+    html += `<tr><td colspan="${isTrader ? 13 : 12}" class="text-center">暂无数据</td></tr>`;
   } else {
     shipments.forEach(s => {
       const highlight = (text) => keyword ? String(text).replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : text;
       html += `<tr>
         <td>${highlight(s.shipment_id)}</td>
         <td>${highlight(s.customer_code)}</td>
-        <td>${highlight(s.sent_date)}</td>
-        <td>${highlight(s.goods_short)}（${highlight(s.goods_detail)}）</td>
+        <td>${highlight(s.port_timezone)}</td>
+        <td>${highlight(s.goods_short)}</td>
+        <td>${highlight(s.goods_detail)}</td>
+        <td>${highlight(s.package_count)}</td>
+        <td>${highlight(s.transport_mode)}</td>
+        <td>${highlight(s.estimated_days)}</td>
         <td>${getStatusBadge(highlight(s.status))}</td>
+        <td>${highlight(s.sent_date)}</td>
+        <td>${highlight(s.arrived_date)}</td>
+        <td>${highlight(s.picked_date)}</td>
         ${isTrader ? `<td>
           <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
           <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s.shipment_id}')">删除</button>
