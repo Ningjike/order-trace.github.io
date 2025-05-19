@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const customerCode = document.getElementById('formCustomerCode').value.trim();
         const date = document.getElementById('formDate').value;
         const goods = document.getElementById('formGoods').value.trim();
-        const status = document.getElementById('formStatus').value.trim();
+        const status = document.getElementById('formStatus').value;
         const remark = document.getElementById('formRemark').value.trim();
 
         if (shipmentId) {
