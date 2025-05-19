@@ -48,6 +48,13 @@ if (!localStorage.getItem('shipments')) {
   localStorage.setItem('shipments', JSON.stringify(defaultShipments));
 }
 
+function getStatusBadge(status) {
+  if (status.includes('已发货')) return `<span class="badge bg-success">${status}</span>`;
+  if (status.includes('待发货')) return `<span class="badge bg-warning text-dark">${status}</span>`;
+  if (status.includes('异常')) return `<span class="badge bg-danger">${status}</span>`;
+  return `<span class="badge bg-secondary">${status}</span>`;
+}
+
 function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   let html = `<table class="table table-bordered table-hover align-middle">
     <thead class="table-light">
@@ -73,7 +80,7 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
         <td>${highlight(s.customer_code)}</td>
         <td>${highlight(s.date)}</td>
         <td>${highlight(s.goods)}</td>
-        <td>${highlight(s.status)}</td>
+        <td>${getStatusBadge(highlight(s.status))}</td>
         <td>${highlight(s.remark || '')}</td>
         ${isTrader ? `<td>
           <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
@@ -191,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const customerCode = document.getElementById('formCustomerCode').value.trim();
         const date = document.getElementById('formDate').value;
         const goods = document.getElementById('formGoods').value.trim();
-        const status = document.getElementById('formStatus').value.trim();
+        const status = document.getElementById('formStatus').value;
         const remark = document.getElementById('formRemark').value.trim();
 
         if (shipmentId) {
