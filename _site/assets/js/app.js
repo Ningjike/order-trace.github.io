@@ -87,24 +87,21 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
         <th>发货日期</th>
         <th>货物信息</th>
         <th>状态</th>
-        <th>备注</th>
         ${isTrader ? '<th>操作</th>' : ''}
       </tr>
     </thead>
     <tbody>`;
   if (shipments.length === 0) {
-    html += `<tr><td colspan="${isTrader ? 7 : 6}" class="text-center">暂无数据</td></tr>`;
+    html += `<tr><td colspan="${isTrader ? 6 : 5}" class="text-center">暂无数据</td></tr>`;
   } else {
     shipments.forEach(s => {
-      // 高亮关键词（可选）
-      const highlight = (text) => keyword ? text.replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : text;
+      const highlight = (text) => keyword ? String(text).replace(new RegExp(keyword, 'gi'), m => `<mark>${m}</mark>`) : text;
       html += `<tr>
         <td>${highlight(s.shipment_id)}</td>
         <td>${highlight(s.customer_code)}</td>
-        <td>${highlight(s.date)}</td>
-        <td>${highlight(s.goods)}</td>
+        <td>${highlight(s.sent_date)}</td>
+        <td>${highlight(s.goods_short)}（${highlight(s.goods_detail)}）</td>
         <td>${getStatusBadge(highlight(s.status))}</td>
-        <td>${highlight(s.remark || '')}</td>
         ${isTrader ? `<td>
           <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
           <button class="btn btn-sm btn-danger" onclick="deleteShipment('${s.shipment_id}')">删除</button>
