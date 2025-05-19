@@ -1,0 +1,23 @@
+- username: trader1
+  password: 123456
+  role: trader
+
+- username: customerA
+  password: abc123
+  role: customer
+  customer_code: ruixin # 使用运单中的客户代码
+
+- username: customerB
+  password: passwordB
+  role: customer
+  customer_code: techmax # 新增客户用户
+
+- username: customerC
+  password: passwordC
+  role: customer
+  customer_code: globalex # 新增客户用户
+
+- username: customerD
+  password: passwordD
+  role: customer
+  customer_code: smartco # 新增客户用户

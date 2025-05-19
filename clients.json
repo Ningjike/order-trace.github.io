@@ -1,0 +1,9 @@
+---
+layout: null
+permalink: /clients.json # 确保文件输出到网站根目录
+---
+[
+{% for client in site.clients %}
+  {{ client.data | jsonify }}{% unless forloop.last %},{% endunless %}
+{% endfor %}
+]
