@@ -191,11 +191,10 @@ document.addEventListener('DOMContentLoaded', function() {
       window.location.href = 'login.html';
     };
 
-    // 用fetch读取根目录下的shipments.csv
-    fetch('/shipments.csv')
-      .then(res => res.text())
-      .then(csvText => {
-        const shipments = parseCSV(csvText);
+    // 用fetch读取根目录下的shipments.json
+    fetch('/shipments.json')
+      .then(res => res.json())
+      .then(shipments => {
         if (user.role === 'trader') {
           document.getElementById('traderPanel').style.display = '';
           renderShipmentsTable(shipments, 'shipmentTableContainer', true);
