@@ -2,6 +2,8 @@
 layout: client
 title: Ruixin Trading Co.
 client_code: ruixin
+username: customerA # 登录用户名
+password: abc123 # 登录密码
 timezone: UTC+3
 language: ar
 country: SA
