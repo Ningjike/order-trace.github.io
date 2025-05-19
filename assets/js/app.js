@@ -1,36 +1,63 @@
-// 示例用户数据（实际可从 _data/users.json 读取后存入 localStorage）
-const defaultUsers = [
-  { username: "trader1", password: "123456", role: "trader" },
-  { username: "customerA", password: "abc123", role: "customer", customer_code: "CUST001" }
-];
-
-// 初始化用户数据到 localStorage
-if (!localStorage.getItem('users')) {
-  localStorage.setItem('users', JSON.stringify(defaultUsers));
-}
-
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
   const loginForm = document.getElementById('loginForm');
   if (loginForm) {
-    loginForm.addEventListener('submit', function (e) {
+    loginForm.addEventListener('submit', function(e) {
       e.preventDefault();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const user = users.find(u => u.username === username && u.password === password);
       const errorDiv = document.getElementById('loginError');
-      if (user) {
-        // 登录成功，保存当前用户到 sessionStorage
-        sessionStorage.setItem('currentUser', JSON.stringify(user));
-        // 跳转到看板页面
-        window.location.href = 'dashboard.html';
-      } else {
-        errorDiv.textContent = "用户名或密码错误";
-        errorDiv.style.display = "block";
-      }
+
+      // 从 /clients.json 文件获取客户数据（包含登录信息）
+      fetch('/clients.json')
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Error fetching clients.json: ${res.status}`);
+          }
+          return res.json();
+        })
+        .then(clients => {
+          // 在获取的客户数据中查找匹配用户名和密码的用户
+          const user = clients.find(client => client.username === username && client.password === password);
+
+          // 注意：贸易商用户（trader）目前不在 clients.json 中，需要单独处理或另外存储。
+          // 假设贸易商用户仍然使用硬编码或另一个 users.json 文件。
+          // 为了简化，这里先假设只有客户会从 clients.json 登录。
+          // 如果需要支持贸易商登录，需要合并 users.json 和 clients.json 的数据。
+
+          if (user) {
+            // 登录成功，保存当前用户到 sessionStorage
+            // 注意：这里 user 对象是客户数据，role 需要根据情况设置，或者在 clients.md 中添加 role 字段
+             if (!user.role) {
+                user.role = 'customer'; // 默认客户角色
+             }
+            sessionStorage.setItem('currentUser', JSON.stringify(user));
+            // 跳转到看板页面
+            window.location.href = 'dashboard.html';
+          } else {
+            // 如果在 clients.json 中没找到，可以尝试从硬编码的贸易商用户中查找 (如果需要)
+             const defaultUsers = [ { username: "trader1", password: "123456", role: "trader" } ]; // 临时硬编码贸易商
+             const traderUser = defaultUsers.find(u => u.username === username && u.password === password);
+
+             if (traderUser) {
+                 sessionStorage.setItem('currentUser', JSON.stringify(traderUser));
+                 window.location.href = 'dashboard.html';
+             } else {
+                errorDiv.textContent = "用户名或密码错误";
+                errorDiv.style.display = "block";
+             }
+          }
+        })
+        .catch(error => {
+          console.error("Login failed:", error);
+          errorDiv.textContent = "加载用户数据失败，请稍后再试。"; // 用户友好提示
+          errorDiv.style.display = "block";
+        });
     });
   }
 });
+
+
+
 // 示例运单数据（实际可从 _data/shipments.json 读取后存入 localStorage）
 const defaultShipments = [
   {
@@ -108,7 +135,7 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
         <td>${highlight(s.tracking_number)}</td>
         <td>${highlight(s.client_code)}</td>
         <td>${highlight(s.transport_mode)}</td>
-        <td>${getStatusBadge(highlight(s.status))}</td> // 状态使用Badge
+        <td>${getStatusBadge(highlight(s.status))}</td>
         <td>${highlight(s.created_at)}</td>
         <td>${highlight(s.shipped_date)}</td>
         <td>${highlight(s.destination)}</td>
@@ -126,9 +153,6 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   document.getElementById(containerId).innerHTML = html;
 }
 
-// 注意：editShipment 和 deleteShipment 函数也需要根据 tracking_number 字段进行调整！
-
-// ... existing code ...
 
 function editShipment(shipmentId) {
   const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');

@@ -41,7 +41,7 @@ plugins:
 collections:
   clients:
     output: true
-    permalink: /clients/:path/
+    permalink: /:collection/:name/
 
 # 默认布局设置
 defaults:
