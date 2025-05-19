@@ -1,0 +1,11 @@
+tracking_number,client_code,transport_mode,status,created_at,shipped_date,destination,items_count,total_weight
+NTS2304-001,ruixin,Sea,已发货,2024-03-15T09:30:00,2024-03-16,Jeddah Port,50,2500
+NTS2304-002,ruixin,Air,运输中,2024-03-14T14:20:00,2024-03-15,Riyadh Airport,25,800
+NTS2304-003,techmax,Sea,已到达,2024-03-10T08:45:00,2024-03-11,Dubai Port,100,5000
+NTS2304-004,globalex,Air,未发货,2024-03-16T11:15:00,,London Heathrow,30,1200
+NTS2304-005,techmax,Sea,运输中,2024-03-13T16:40:00,2024-03-14,Shanghai Port,75,3800
+NTS2304-006,smartco,Air,已发货,2024-03-12T10:25:00,2024-03-13,New York JFK,40,1600
+NTS2304-007,ruixin,Sea,未发货,2024-03-16T13:50:00,,Jeddah Port,60,3000
+NTS2304-008,globalex,Sea,运输中,2024-03-11T15:35:00,2024-03-12,Rotterdam Port,90,4500
+NTS2304-009,smartco,Air,已到达,2024-03-09T12:10:00,2024-03-10,Los Angeles LAX,35,1400
+NTS2304-010,techmax,Sea,已发货,2024-03-15T17:25:00,2024-03-16,Hong Kong Port,80,4000 
