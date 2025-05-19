@@ -48,6 +48,13 @@ if (!localStorage.getItem('shipments')) {
   localStorage.setItem('shipments', JSON.stringify(defaultShipments));
 }
 
+function getStatusBadge(status) {
+  if (status.includes('已发货')) return `<span class="badge bg-success">${status}</span>`;
+  if (status.includes('待发货')) return `<span class="badge bg-warning text-dark">${status}</span>`;
+  if (status.includes('异常')) return `<span class="badge bg-danger">${status}</span>`;
+  return `<span class="badge bg-secondary">${status}</span>`;
+}
+
 function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
   let html = `<table class="table table-bordered table-hover align-middle">
     <thead class="table-light">
@@ -73,7 +80,7 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
         <td>${highlight(s.customer_code)}</td>
         <td>${highlight(s.date)}</td>
         <td>${highlight(s.goods)}</td>
-        <td>${highlight(s.status)}</td>
+        <td>${getStatusBadge(highlight(s.status))}</td>
         <td>${highlight(s.remark || '')}</td>
         ${isTrader ? `<td>
           <button class="btn btn-sm btn-primary me-1" onclick="editShipment('${s.shipment_id}')">编辑</button>
@@ -110,7 +117,6 @@ function deleteShipment(shipmentId) {
   renderShipmentsTable(shipments, 'shipmentTableContainer', true);
 }
 
-<<<<<<< HEAD
 function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
   if (!shipments || shipments.length === 0) {
     alert('没有可导出的数据！');
@@ -131,27 +137,6 @@ function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
   document.body.removeChild(link);
 }
 
-=======
-function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
-  if (!shipments || shipments.length === 0) {
-    alert('没有可导出的数据！');
-    return;
-  }
-  const header = ['运单编号', '客户代码', '发货日期', '货物信息', '状态', '备注'];
-  const rows = shipments.map(s => [
-    s.shipment_id, s.customer_code, s.date, s.goods, s.status, s.remark || ''
-  ]);
-  let csvContent = header.join(',') + '\n' + rows.map(r => r.map(x => `"${(x || '').replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
->>>>>>> 2de79fa66c0d7ac50dcba746401c905091b5a3fb
 document.addEventListener('DOMContentLoaded', function() {
   // 登录页面逻辑已在前面实现
 
@@ -173,10 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (user.role === 'trader') {
       document.getElementById('traderPanel').style.display = '';
-<<<<<<< HEAD
-=======
-      let lastTraderFiltered = [];
->>>>>>> 2de79fa66c0d7ac50dcba746401c905091b5a3fb
       function refreshTraderTable(keyword = '') {
         const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
         let filtered = shipments;
@@ -194,7 +175,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
       refreshTraderTable();
 
-<<<<<<< HEAD
       document.getElementById('traderExportBtn').onclick = function() {
         const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
         const keyword = document.getElementById('traderSearchInput').value.trim();
@@ -210,12 +190,6 @@ document.addEventListener('DOMContentLoaded', function() {
         exportShipmentsToCSV(filtered, 'shipments_trader.csv');
       };
 
-=======
-      document.getElementById('traderExportBtn').onclick = function() {
-        exportShipmentsToCSV(lastTraderFiltered, 'shipments_trader.csv');
-      };
-
->>>>>>> 2de79fa66c0d7ac50dcba746401c905091b5a3fb
       // 新增/编辑运单表单提交
       document.getElementById('shipmentForm').onsubmit = function(e) {
         e.preventDefault();
@@ -289,7 +263,6 @@ document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('customerSearchInput').addEventListener('input', function() {
         refreshCustomerTable(this.value.trim());
       });
-<<<<<<< HEAD
 
       document.getElementById('customerExportBtn').onclick = function() {
         const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
@@ -306,12 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         exportShipmentsToCSV(filtered, 'shipments_customer.csv');
       };
-=======
-
-      document.getElementById('customerExportBtn').onclick = function() {
-        exportShipmentsToCSV(lastCustomerFiltered, 'shipments_customer.csv');
-      };
->>>>>>> 2de79fa66c0d7ac50dcba746401c905091b5a3fb
     }
   }
 });
