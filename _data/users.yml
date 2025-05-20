@@ -5,19 +5,19 @@
 - username: customerA
   password: abc123
   role: customer
-  client_code: ruixin
+  client_code_ref: ruixin
 
 - username: customerB
   password: passwordB
   role: customer
-  client_code: techmax
+  client_code_ref: techmax
 
 - username: customerC
   password: passwordC
   role: customer
-  client_code: globalex
+  client_code_ref: globalex
 
 - username: customerD
   password: passwordD
   role: customer
-  client_code: smartco
+  client_code_ref: smartco
