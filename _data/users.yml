@@ -1,23 +1,23 @@
 - username: trader1
-  password: 123456
+  password: "123456"
   role: trader
 
 - username: customerA
-  password: abc123
+  password: "abc123"
   role: customer
   client_code_ref: ruixin
 
 - username: customerB
-  password: passwordB
+  password: "passwordB"
   role: customer
   client_code_ref: techmax
 
 - username: customerC
-  password: passwordC
+  password: "passwordC"
   role: customer
   client_code_ref: globalex
 
 - username: customerD
-  password: passwordD
+  password: "passwordD"
   role: customer
   client_code_ref: smartco
