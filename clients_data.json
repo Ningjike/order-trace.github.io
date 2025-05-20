@@ -4,6 +4,6 @@ permalink: /clients_data.json
 ---
 [
 {% for client in site.clients %}
-  {{ client.data | jsonify }}{% unless forloop.last %},{% endunless %}
+  {{ client | jsonify }}{% unless forloop.last %},{% endunless %}
 {% endfor %}
 ]
