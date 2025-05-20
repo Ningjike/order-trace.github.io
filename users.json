@@ -1,0 +1,5 @@
+---
+layout: null
+permalink: /users.json # 确保文件输出到网站根目录
+---
+{{ site.data.users | jsonify }}
