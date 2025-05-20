@@ -5,7 +5,7 @@
 - username: customerA
   password: abc123
   role: customer
-  client_code_ref: ruixin
+  client_code: ruixin
 
 - username: customerB
   password: passwordB
