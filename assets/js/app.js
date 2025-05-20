@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
    if (window.location.pathname.endsWith('dashboard.html')) {
       const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
       if (!user) {
-          window.location.href = 'login.html';
+          window.location.href = 'index.html';
           return;
       }
       document.getElementById('userRole').textContent = user.role === 'trader' ? '贸易商' : '客户';
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const customerDetailsDiv = document.createElement('div');
           customerDetailsDiv.innerHTML = `<h5>客户信息</h5>
               <p><strong>客户代码:</strong> ${user.client_code || 'N/A'}</p>
-              <p><strong>客户姓名:</strong> ${user.name || 'N/A'}</p>
+              <p><strong>邮箱:</strong> ${user.email || 'N/A'}</p>
               <p><strong>联系方式:</strong> ${user.contact || 'N/A'}</p>
               <p><strong>国家:</strong> ${user.country || 'N/A'}</p>
               <p><strong>语言:</strong> ${user.language || 'N/A'}</p>
@@ -108,28 +108,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
       document.getElementById('logoutBtn').onclick = function() {
           sessionStorage.removeItem('currentUser');
-          window.location.href = 'login.html';
+          window.location.href = 'index.html'; // 登出后回到首页
       };
 
-      // 用fetch读取根目录下的shipments.json
-      fetch('/shipments.json')
-        .then(res => {
-            if (!res.ok) { // 添加对 shipments.json fetch 错误的检查
-                throw new Error(`Error fetching shipments.json: ${res.status} - ${res.statusText}`);
-            }
-            return res.json();
-        })
-        .then(shipments => {
-          console.log("Fetched Shipments Data:", shipments); // 保留日志以便调试
+      // **数据加载逻辑：优先从 localStorage 加载，否则从 shipments.json 加载**
+      let shipments = JSON.parse(localStorage.getItem('shipments') || 'null'); // 尝试从 localStorage 读取
+
+      if (shipments) {
+          console.log("Loaded Shipments Data from localStorage:", shipments);
+          // 如果 localStorage 有数据，直接处理并渲染
+          handleShipmentsData(shipments, user);
+      } else {
+          // 如果 localStorage 没有数据，从 shipments.json 加载
+          console.log("No shipments data in localStorage, fetching from shipments.json...");
+          fetch('/shipments.json')
+            .then(res => {
+                if (!res.ok) { // 添加对 shipments.json fetch 错误的检查
+                    throw new Error(`Error fetching shipments.json: ${res.status} - ${res.statusText}`);
+                }
+                return res.json();
+            })
+            .then(fetchedShipments => {
+              console.log("Fetched Shipments Data from file:", fetchedShipments);
+              // 将从文件加载的数据保存到 localStorage
+              localStorage.setItem('shipments', JSON.stringify(fetchedShipments));
+              shipments = fetchedShipments; // 更新 shipments 变量
+              // 处理并渲染数据
+              handleShipmentsData(shipments, user);
+            })
+            .catch(error => {
+              console.error("Error loading initial shipments data from shipments.json:", error); // 添加详细错误日志
+              // 显示加载运单数据失败的错误
+               if (window.location.pathname.endsWith('dashboard.html')) {
+                   document.getElementById('shipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
+                   document.getElementById('customerShipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
+               }
+            });
+      }
+
+      // **Helper function to handle rendering, search, and export after data is loaded**
+      // This function will operate on the 'shipments' array (either from localStorage or initial fetch)
+      function handleShipmentsData(currentShipments, currentUser) {
           // **将贸易商和客户的表格渲染和相关逻辑放在这里**
-          if (user.role === 'trader') {
+          if (currentUser.role === 'trader') {
             document.getElementById('traderPanel').style.display = '';
             // 贸易商相关的表格渲染、搜索、增删改逻辑
-            renderShipmentsTable(shipments, 'shipmentTableContainer', true);
-            // 搜索功能
+            renderShipmentsTable(currentShipments, 'shipmentTableContainer', true);
+
+            // 搜索功能 (现在操作 currentShipments)
             document.getElementById('traderSearchInput').addEventListener('input', function() {
                 const keyword = this.value.trim();
-                const filtered = shipments.filter(s =>
+                const filtered = currentShipments.filter(s =>
                     String(s.tracking_number || '').includes(keyword) ||
                     String(s.client_code || '').includes(keyword) ||
                     String(s.transport_mode || '').includes(keyword) ||
@@ -139,10 +168,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 renderShipmentsTable(filtered, 'shipmentTableContainer', true, keyword);
             });
-            // 导出功能
+
+            // 导出功能 (现在操作 currentShipments)
             document.getElementById('traderExportBtn').onclick = function() {
                  const keyword = document.getElementById('traderSearchInput').value.trim();
-                 const filtered = shipments.filter(s =>
+                 const filtered = currentShipments.filter(s =>
                     String(s.tracking_number || '').includes(keyword) ||
                     String(s.client_code || '').includes(keyword) ||
                     String(s.transport_mode || '').includes(keyword) ||
@@ -150,25 +180,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     String(s.destination || '').includes(keyword) ||
                     String(s.shipped_date || '').includes(keyword)
                  );
+                 // 导出时使用当前过滤后的数据
                  exportShipmentsToCSV(filtered, 'shipments_trader.csv');
              };
-             // 注意：新增/编辑/删除逻辑仍无效，需要后端
-             // 你可以暂时隐藏或移除这些按钮，避免误触
-             // 例如： document.getElementById('addModal').style.display = 'none'; // 隐藏模态框
-             // document.querySelector('#traderPanel button[data-bs-target="#addModal"]').style.display = 'none'; // 隐藏新增按钮
-             // 类似地，编辑/删除按钮也需要处理
-             // 或者修改 editShipment 和 deleteShipment 函数提示功能不可用
-             window.editShipment = function(shipmentId) { alert("编辑功能未实现持久化保存，当前不可用。"); };
-             window.deleteShipment = function(shipmentId) { alert("删除功能未实现持久化保存，当前不可用。"); };
 
+             // **新增/编辑/删除逻辑现在将操作 localStorage 中的数据**
+             // 需要更新这些函数，使其修改全局或闭包中的 shipments 数组，并更新 localStorage
+             // 同时，需要更新模态框表单字段以匹配 shipments.json 的字段
+             // 注意：这些函数需要在 handleShipmentsData 内部或能够访问到 shipments 变量的范围定义
 
-          } else if (user.role === 'customer') {
+          } else if (currentUser.role === 'customer') {
             document.getElementById('customerPanel').style.display = '';
-            // 客户相关的表格渲染、搜索逻辑
-            const myShipments = shipments.filter(s => s.client_code === user.client_code); // **使用 user.client_code** 从合并后的 user 对象中获取
+            // 客户相关的表格渲染、搜索逻辑 (操作 currentShipments)
+            const myShipments = currentShipments.filter(s => s.client_code === currentUser.client_code); // **使用 user.client_code** 从合并后的 user 对象中获取
             renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
 
-            // 搜索功能
+            // 搜索功能 (现在操作 myShipments)
             document.getElementById('customerSearchInput').addEventListener('input', function() {
                 const keyword = this.value.trim();
                 const filtered = myShipments.filter(s =>
@@ -180,7 +207,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
                 renderShipmentsTable(filtered, 'customerShipmentTableContainer', false, keyword);
             });
-             // 导出功能
+
+             // 导出功能 (现在操作 myShipments)
             document.getElementById('customerExportBtn').onclick = function() {
                  const keyword = document.getElementById('customerSearchInput').value.trim();
                  const filtered = myShipments.filter(s =>
@@ -190,18 +218,125 @@ document.addEventListener('DOMContentLoaded', function() {
                     String(s.destination || '').includes(keyword) ||
                     String(s.shipped_date || '').includes(keyword)
                  );
+                 // 导出时使用当前过滤后的数据
                  exportShipmentsToCSV(filtered, 'shipments_customer.csv');
             };
           }
-        })
-        .catch(error => {
-          console.error("Error fetching shipments.json:", error); // 添加详细错误日志
-          // 显示加载运单数据失败的错误
-           if (window.location.pathname.endsWith('dashboard.html')) {
-               document.getElementById('shipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
-               document.getElementById('customerShipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
-           }
+      }
+      // End of handleShipmentsData function
+
+      // **Handle Shipment Form Submission (Add/Edit)**
+      const shipmentForm = document.getElementById('shipmentForm');
+      if (shipmentForm) {
+        shipmentForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+
+          const trackingNumber = document.getElementById('formTrackingNumber').value.trim();
+          const clientCode = document.getElementById('formClientCode').value.trim();
+          const transportMode = document.getElementById('formTransportMode').value.trim();
+          const status = document.getElementById('formStatus').value;
+          const shippedDate = document.getElementById('formShippedDate').value;
+          const destination = document.getElementById('formDestination').value.trim();
+          const itemsCount = parseInt(document.getElementById('formItemsCount').value, 10);
+          const totalWeight = parseFloat(document.getElementById('formTotalWeight').value);
+
+          let shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+          const isEditing = shipmentForm.dataset.editingId ? true : false; // Check if editing
+
+          if (isEditing) {
+            // **Edit Existing Shipment**
+            const trackingNumberToEdit = shipmentForm.dataset.editingId;
+            const index = shipments.findIndex(s => s.tracking_number === trackingNumberToEdit);
+            if (index !== -1) {
+              // Update the existing shipment object
+              shipments[index].tracking_number = trackingNumber; // Allow editing tracking number? Usually not.
+              shipments[index].client_code = clientCode;
+              shipments[index].transport_mode = transportMode;
+              shipments[index].status = status;
+              shipments[index].shipped_date = shippedDate;
+              shipments[index].destination = destination;
+              shipments[index].items_count = itemsCount;
+              shipments[index].total_weight = totalWeight;
+              // Keep original created_at
+
+              alert("运单已在当前浏览器中修改，但尚未保存到服务器。请记得导出数据并手动更新源文件！");
+            } else {
+              console.error("Shipment not found for editing:", trackingNumberToEdit);
+              alert("编辑失败：未找到对应运单。");
+            }
+          } else {
+            // **Add New Shipment**
+            // Basic validation: Check if tracking number already exists (rudimentary)
+            if (shipments.some(s => s.tracking_number === trackingNumber)) {
+                 alert("新增失败：运单编号已存在。");
+                 return;
+            }
+
+            const newShipment = {
+              tracking_number: trackingNumber,
+              client_code: clientCode,
+              transport_mode: transportMode,
+              status: status,
+              created_at: new Date().toISOString().split('T')[0], // Auto-generate creation date (YYYY-MM-DD)
+              shipped_date: shippedDate,
+              destination: destination,
+              items_count: itemsCount,
+              total_weight: totalWeight
+            };
+            shipments.push(newShipment);
+            alert("运单已在当前浏览器中添加，但尚未保存到服务器。请记得导出数据并手动更新源文件！");
+          }
+
+          // Save updated shipments to localStorage
+          localStorage.setItem('shipments', JSON.stringify(shipments));
+
+          // Re-render the table for the current user role
+          const user = JSON.parse(sessionStorage.getItem('currentUser'));
+          if (user && user.role === 'trader') {
+              // Re-render the filtered list if search is active, otherwise render all from localStorage
+              const currentKeyword = document.getElementById('traderSearchInput').value.trim();
+              if (currentKeyword) {
+                  const filteredShipments = shipments.filter(s =>
+                      String(s.tracking_number || '').includes(currentKeyword) ||
+                      String(s.client_code || '').includes(currentKeyword) ||
+                      String(s.transport_mode || '').includes(currentKeyword) ||
+                      String(s.status || '').includes(currentKeyword) ||
+                      String(s.destination || '').includes(currentKeyword) ||
+                      String(s.shipped_date || '').includes(currentKeyword)
+                  );
+                  renderShipmentsTable(filteredShipments, 'shipmentTableContainer', true, currentKeyword);
+              } else {
+                  renderShipmentsTable(shipments, 'shipmentTableContainer', true);
+              }
+          }
+
+          // Add a temporary data modified flag
+          sessionStorage.setItem('dataModified', 'true');
+
+          // Hide the modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+          if (modal) modal.hide();
+
+           // Clear form fields after submission
+           shipmentForm.reset();
+           delete shipmentForm.dataset.editingId; // Clear editing flag
         });
+
+        // **Handle Add New Shipment Button Click**
+        const addShipmentBtn = document.querySelector('#traderPanel button[data-bs-target="#addModal"]');
+        if (addShipmentBtn) {
+            addShipmentBtn.addEventListener('click', function() {
+                // Clear the form for a new entry
+                shipmentForm.reset();
+                delete shipmentForm.dataset.editingId; // Ensure editing flag is cleared
+                document.getElementById('addModalLabel').textContent = '新增运单'; // Set modal title
+                // Potentially disable tracking number field in edit mode, enable in add mode
+                document.getElementById('formTrackingNumber').disabled = false; // Enable for add
+            });
+        }
+
+      }
+
   }
 });
 
@@ -261,29 +396,80 @@ function renderShipmentsTable(shipments, containerId, isTrader, keyword = '') {
 }
 
 
-function editShipment(shipmentId) {
-  const shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
-  const s = shipments.find(x => x.shipment_id === shipmentId);
-  if (s) {
-    document.getElementById('shipmentId').value = s.shipment_id;
-    document.getElementById('formCustomerCode').value = s.customer_code;
-    document.getElementById('formDate').value = s.date;
-    document.getElementById('formGoods').value = s.goods;
-    document.getElementById('formStatus').value = s.status;
-    document.getElementById('formRemark').value = s.remark || '';
-    // 显示模态框
-    const modal = new bootstrap.Modal(document.getElementById('addModal'));
-    modal.show();
-  }
-}
+function editShipment(trackingNumber) {
+    let shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
+    const shipmentToEdit = shipments.find(s => s.tracking_number === trackingNumber); // Find by tracking_number
+    if (shipmentToEdit) {
+        // Populate the modal form with existing data
+        document.getElementById('shipmentId').value = shipmentToEdit.tracking_number; // Store tracking_number in hidden field
+        document.getElementById('formTrackingNumber').value = shipmentToEdit.tracking_number;
+        document.getElementById('formClientCode').value = shipmentToEdit.client_code;
+        document.getElementById('formTransportMode').value = shipmentToEdit.transport_mode;
+        document.getElementById('formStatus').value = shipmentToEdit.status;
+        document.getElementById('formShippedDate').value = shipmentToEdit.shipped_date;
+        document.getElementById('formDestination').value = shipmentToEdit.destination;
+        document.getElementById('formItemsCount').value = shipmentToEdit.items_count;
+        document.getElementById('formTotalWeight').value = shipmentToEdit.total_weight;
 
-function deleteShipment(shipmentId) {
-  if (!confirm('确定要删除该运单吗？')) return;
+        // Set a flag or store the trackingNumber in modal to know if it's an edit
+        shipmentForm.dataset.editingId = trackingNumber; // Set editing flag
+        document.getElementById('addModalLabel').textContent = '编辑运单'; // Set modal title
+
+        // Disable tracking number field when editing
+        document.getElementById('formTrackingNumber').disabled = true;
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('addModal')); // Assumes one modal for add/edit
+        modal.show();
+
+    } else {
+        console.error("Shipment not found for editing:", trackingNumber);
+        alert("编辑失败：未找到对应运单。");
+    }
+};
+
+function deleteShipment(trackingNumber) {
+  if (!confirm('确定要删除该运单吗？此操作仅影响当前浏览器中的数据，不会同步到服务器。')) return; // Add warning
   let shipments = JSON.parse(localStorage.getItem('shipments') || '[]');
-  shipments = shipments.filter(s => s.shipment_id !== shipmentId);
+  shipments = shipments.filter(s => s.tracking_number !== trackingNumber); // Filter by tracking_number
   localStorage.setItem('shipments', JSON.stringify(shipments));
-  renderShipmentsTable(shipments, 'shipmentTableContainer', true);
-}
+
+  // Re-render the table for the current user role
+  const user = JSON.parse(sessionStorage.getItem('currentUser'));
+  if (user) {
+      if (user.role === 'trader') {
+          // Re-render the filtered list if search is active, otherwise render all from localStorage
+          const currentKeyword = document.getElementById('traderSearchInput').value.trim();
+          if (currentKeyword) {
+              const filteredShipments = shipments.filter(s =>
+                  String(s.tracking_number || '').includes(currentKeyword) ||
+                  String(s.client_code || '').includes(currentKeyword) ||
+                  String(s.transport_mode || '').includes(currentKeyword) ||
+                  String(s.status || '').includes(currentKeyword) ||
+                  String(s.destination || '').includes(currentKeyword) ||
+                  String(s.shipped_date || '').includes(currentKeyword)
+              );
+              renderShipmentsTable(filteredShipments, 'shipmentTableContainer', true, currentKeyword);
+          } else {
+              renderShipmentsTable(shipments, 'shipmentTableContainer', true);
+          }
+
+      } // Customer role does not have delete, so no need to handle
+  }
+   // Add a temporary data modified flag
+   sessionStorage.setItem('dataModified', 'true');
+   alert("运单已在当前浏览器中删除，但尚未保存到服务器。请记得导出数据并手动更新源文件！");
+};
+
+// Function to handle beforeunload event
+window.addEventListener('beforeunload', function(e) {
+    if (sessionStorage.getItem('dataModified') === 'true') {
+        // Ask for confirmation
+        const confirmationMessage = '您有未保存的更改，离开页面可能会丢失。确定要离开吗？';
+        (e || window.event).returnValue = confirmationMessage; // Standard for most browsers
+        return confirmationMessage; // For some older browsers
+    }
+});
 
 function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
   if (!shipments || shipments.length === 0) {
@@ -303,6 +489,10 @@ function exportShipmentsToCSV(shipments, filename = 'shipments.csv') {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+
+  // After successful export:
+  sessionStorage.removeItem('dataModified'); // Reset the flag
+  alert("数据已导出为 CSV。请手动替换服务器上的源文件。请注意，此次导出已重置未保存更改提示。");
 }
 
 // CSV解析函数

@@ -41,22 +41,22 @@
     <div class="modal-dialog">
       <form class="modal-content" id="shipmentForm">
         <div class="modal-header">
-          <h5 class="modal-title" id="addModalLabel">新增/编辑运单</h5>
+          <h5 class="modal-title" id="addModalLabel">新增运单</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="shipmentId">
           <div class="mb-3">
-            <label for="formCustomerCode" class="form-label">客户代码</label>
-            <input type="text" class="form-control" id="formCustomerCode" required>
+            <label for="formTrackingNumber" class="form-label">运单编号</label>
+            <input type="text" class="form-control" id="formTrackingNumber" required>
           </div>
           <div class="mb-3">
-            <label for="formDate" class="form-label">发货日期</label>
-            <input type="date" class="form-control" id="formDate" required>
+            <label for="formClientCode" class="form-label">客户代码</label>
+            <input type="text" class="form-control" id="formClientCode" required>
           </div>
-          <div class="mb-3">
-            <label for="formGoods" class="form-label">货物信息</label>
-            <input type="text" class="form-control" id="formGoods" required>
+           <div class="mb-3">
+            <label for="formTransportMode" class="form-label">运输方式</label>
+            <input type="text" class="form-control" id="formTransportMode" required>
           </div>
           <div class="mb-3">
             <label for="formStatus" class="form-label">状态</label>
@@ -65,12 +65,27 @@
               <option value="已发货">已发货</option>
               <option value="待发货">待发货</option>
               <option value="异常">异常</option>
+              <!-- 可以根据需要添加更多状态选项 -->
             </select>
           </div>
-          <div class="mb-3">
-            <label for="formRemark" class="form-label">备注</label>
-            <input type="text" class="form-control" id="formRemark">
+           <div class="mb-3">
+            <label for="formShippedDate" class="form-label">发货日期</label>
+            <input type="date" class="form-control" id="formShippedDate" required>
           </div>
+          <div class="mb-3">
+            <label for="formDestination" class="form-label">目的地</label>
+            <input type="text" class="form-control" id="formDestination" required>
+          </div>
+           <div class="mb-3">
+            <label for="formItemsCount" class="form-label">物品数量</label>
+            <input type="number" class="form-control" id="formItemsCount" required min="0">
+          </div>
+           <div class="mb-3">
+            <label for="formTotalWeight" class="form-label">总重量 (kg)</label>
+            <input type="number" class="form-control" id="formTotalWeight" required min="0" step="0.01">
+          </div>
+          <!-- created_at 通常由系统生成，无需用户填写 -->
+
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
