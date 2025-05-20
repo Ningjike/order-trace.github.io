@@ -78,4 +78,4 @@ include:
   - users.json
   # 如果你将 shipments.csv 或 clients_data.json 也放在根目录且需要 Jekyll 处理，也要加到这里
   # - shipments.csv # 如果 shipments.csv 在根目录
-  # - clients_data.json # 如果 clients_data.json 在根目录
+  - clients_data.json # 如果 clients_data.json 在根目录
