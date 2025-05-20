@@ -31,8 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(res => res.json())
                     .then(clientsData => {
                         // 找到与凭据关联的客户详细信息，使用 client.client_code 进行匹配
-                        const clientDetails = clientsData.find(client => client.client_code === userCredential.client_code_ref); // 使用 client_code_ref 来查找 client.client_code
-
+                        const clientDetails = clientsData.find(client => client.client_code === userCredential.client_code);
                         if (clientDetails) {
                             // 合并凭据和详细信息，保存到 sessionStorage
                             const currentUser = { ...userCredential, ...clientDetails };
