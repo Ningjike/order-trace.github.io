@@ -7,96 +7,183 @@ document.addEventListener('DOMContentLoaded', function() {
       const password = document.getElementById('password').value.trim();
       const errorDiv = document.getElementById('loginError');
 
-      // 从 /clients.json 文件获取客户数据（包含登录信息）
-      fetch('/clients.json')
+      // 从 /users.json 文件获取所有用户凭据数据
+      fetch('/users.json')
         .then(res => {
           if (!res.ok) {
-            throw new Error(`Error fetching clients.json: ${res.status}`);
+            throw new Error(`Error fetching users.json: ${res.status} - ${res.statusText}`);
           }
           return res.json();
         })
-        .then(clients => {
-          // 在获取的客户数据中查找匹配用户名和密码的用户
-          const user = clients.find(client => client.username === username && client.password === password);
+        .then(users => {
+          // 在用户凭据数据中查找匹配用户名和密码的用户
+          const userCredential = users.find(u => u.username === username && u.password === password);
 
-          // 注意：贸易商用户（trader）目前不在 clients.json 中，需要单独处理或另外存储。
-          // 假设贸易商用户仍然使用硬编码或另一个 users.json 文件。
-          // 为了简化，这里先假设只有客户会从 clients.json 登录。
-          // 如果需要支持贸易商登录，需要合并 users.json 和 clients.json 的数据。
-
-          if (user) {
-            // 登录成功，保存当前用户到 sessionStorage
-            // 注意：这里 user 对象是客户数据，role 需要根据情况设置，或者在 clients.md 中添加 role 字段
-             if (!user.role) {
-                user.role = 'customer'; // 默认客户角色
-             }
-            sessionStorage.setItem('currentUser', JSON.stringify(user));
-            // 跳转到看板页面
-            window.location.href = 'dashboard.html';
-          } else {
-            // 如果在 clients.json 中没找到，可以尝试从硬编码的贸易商用户中查找 (如果需要)
-             const defaultUsers = [ { username: "trader1", password: "123456", role: "trader" } ]; // 临时硬编码贸易商
-             const traderUser = defaultUsers.find(u => u.username === username && u.password === password);
-
-             if (traderUser) {
-                 sessionStorage.setItem('currentUser', JSON.stringify(traderUser));
+          if (userCredential) {
+            // 如果找到匹配的凭据
+            if (userCredential.role === 'trader') {
+                 // 贸易商直接登录成功
+                 sessionStorage.setItem('currentUser', JSON.stringify(userCredential));
                  window.location.href = 'dashboard.html';
-             } else {
-                errorDiv.textContent = "用户名或密码错误";
-                errorDiv.style.display = "block";
-             }
+            } else if (userCredential.role === 'customer' && userCredential.client_code_ref) {
+                 // 客户需要进一步获取详细信息
+                 fetch('/clients_data.json') // 从客户详细信息文件获取
+                    .then(res => res.json())
+                    .then(clientsData => {
+                        // 找到与凭据关联的客户详细信息
+                        const clientDetails = clientsData.find(client => client.client_code === userCredential.client_code_ref);
+
+                        if (clientDetails) {
+                            // 合并凭据和详细信息，保存到 sessionStorage
+                            const currentUser = { ...userCredential, ...clientDetails };
+                            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            window.location.href = 'dashboard.html';
+                        } else {
+                            // 凭据存在但找不到对应的客户详细信息
+                            errorDiv.textContent = "用户信息不完整，请联系管理员。";
+                            errorDiv.style.display = "block";
+                        }
+                    })
+                    .catch(error => {
+                         console.error("Error fetching clients_data.json:", error);
+                         errorDiv.textContent = `加载客户详细信息失败: ${error.message}`;
+                         errorDiv.style.display = "block";
+                    });
+            } else {
+                 // 未知的用户角色或客户数据不完整
+                 errorDiv.textContent = "用户信息不完整或角色未知，请联系管理员。";
+                 errorDiv.style.display = "block";
+            }
+
+          } else {
+            // 用户名或密码不匹配
+            errorDiv.textContent = "用户名或密码错误";
+            errorDiv.style.display = "block";
           }
         })
         .catch(error => {
           console.error("Login failed:", error);
-          errorDiv.textContent = "加载用户数据失败，请稍后再试。"; // 用户友好提示
+          errorDiv.textContent = `加载用户数据失败: ${error.message}`;
           errorDiv.style.display = "block";
         });
     });
   }
+
+  // ... 其他看板页面相关的DOMContentLoaded逻辑 ...
+  // 这部分逻辑仍然在fetch('/shipments.json') 成功后执行，并且使用 sessiongStorage 中的 currentUser 对象
+  // 确保在需要客户代码的地方使用 user.client_code
+
+   if (window.location.pathname.endsWith('dashboard.html')) {
+      const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+      if (!user) {
+          window.location.href = 'login.html';
+          return;
+      }
+      document.getElementById('userRole').textContent = user.role === 'trader' ? '贸易商' : '客户';
+
+      // **在客户面板显示客户详细信息 (可选)**
+      if (user.role === 'customer') {
+          const customerDetailsDiv = document.createElement('div');
+          customerDetailsDiv.innerHTML = `<h5>客户信息</h5>
+              <p><strong>客户代码:</strong> ${user.client_code}</p>
+              <p><strong>客户姓名:</strong> ${user.name || 'N/A'}</p>
+              <p><strong>联系方式:</strong> ${user.contact || 'N/A'}</p>
+              <p><strong>国家:</strong> ${user.country || 'N/A'}</p>
+              <p><strong>语言:</strong> ${user.language || 'N/A'}</p>
+              <p><strong>时区:</strong> ${user.timezone || 'N/A'}</p>
+              <hr>`;
+           const customerPanel = document.getElementById('customerPanel');
+           customerPanel.insertBefore(customerDetailsDiv, customerPanel.firstChild); // 在面板顶部插入
+      }
+
+
+      document.getElementById('logoutBtn').onclick = function() {
+          sessionStorage.removeItem('currentUser');
+          window.location.href = 'login.html';
+      };
+
+      // 用fetch读取根目录下的shipments.json
+      fetch('/shipments.json')
+        .then(res => res.json())
+        .then(shipments => {
+          console.log("Fetched Shipments Data:", shipments); // 保留日志以便调试
+          // **将贸易商和客户的表格渲染和相关逻辑放在这里**
+          if (user.role === 'trader') {
+            document.getElementById('traderPanel').style.display = '';
+            // 贸易商相关的表格渲染、搜索、增删改逻辑 (继续使用 shipments 完整数据)
+            renderShipmentsTable(shipments, 'shipmentTableContainer', true);
+            // 搜索功能
+            document.getElementById('traderSearchInput').addEventListener('input', function() {
+                const keyword = this.value.trim();
+                const filtered = shipments.filter(s =>
+                    String(s.tracking_number || '').includes(keyword) || // 注意字段名匹配
+                    String(s.client_code || '').includes(keyword) ||
+                    String(s.transport_mode || '').includes(keyword) ||
+                    String(s.status || '').includes(keyword) ||
+                    String(s.destination || '').includes(keyword) ||
+                    String(s.shipped_date || '').includes(keyword) // 使用 shipped_date
+                );
+                renderShipmentsTable(filtered, 'shipmentTableContainer', true, keyword);
+            });
+            // 导出功能（需要修改以使用当前filtered数据）
+            document.getElementById('traderExportBtn').onclick = function() {
+                 const keyword = document.getElementById('traderSearchInput').value.trim();
+                 const filtered = shipments.filter(s =>
+                    String(s.tracking_number || '').includes(keyword) || // 注意字段名匹配
+                    String(s.client_code || '').includes(keyword) ||
+                    String(s.transport_mode || '').includes(keyword) ||
+                    String(s.status || '').includes(keyword) ||
+                    String(s.destination || '').includes(keyword) ||
+                    String(s.shipped_date || '').includes(keyword) // 使用 shipped_date
+                 );
+                 exportShipmentsToCSV(filtered, 'shipments_trader.csv');
+             };
+            // 新增/编辑/删除逻辑 (需要大幅修改以匹配新字段和可能的持久化方案)
+            // **注意：目前新增、编辑、删除操作仍然只影响前端内存中的 shipments 数组，无法写回 CSV/JSON 文件！**
+            // 如果需要这些操作能持久化，必须引入后端。目前这些按钮可能不会起作用或导致错误，需要根据实际需求调整。
+
+          } else if (user.role === 'customer') {
+            document.getElementById('customerPanel').style.display = '';
+            // 客户相关的表格渲染、搜索逻辑 (使用 user.client_code 筛选)
+            const myShipments = shipments.filter(s => s.client_code === user.client_code); // 使用 user.client_code 从合并后的 user 对象中获取
+            renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
+
+            // 搜索功能
+            document.getElementById('customerSearchInput').addEventListener('input', function() {
+                const keyword = this.value.trim();
+                const filtered = myShipments.filter(s =>
+                    String(s.tracking_number || '').includes(keyword) || // 注意字段名匹配
+                    String(s.transport_mode || '').includes(keyword) ||
+                    String(s.status || '').includes(keyword) ||
+                    String(s.destination || '').includes(keyword) ||
+                    String(s.shipped_date || '').includes(keyword) // 使用 shipped_date
+                );
+                renderShipmentsTable(filtered, 'customerShipmentTableContainer', false, keyword);
+            });
+             // 导出功能（需要修改以使用当前filtered数据）
+            document.getElementById('customerExportBtn').onclick = function() {
+                 const keyword = document.getElementById('customerSearchInput').value.trim();
+                 const filtered = myShipments.filter(s =>
+                    String(s.tracking_number || '').includes(keyword) || // 注意字段名匹配
+                    String(s.transport_mode || '').includes(keyword) ||
+                    String(s.status || '').includes(keyword) ||
+                    String(s.destination || '').includes(keyword) ||
+                    String(s.shipped_date || '').includes(keyword) // 使用 shipped_date
+                 );
+                 exportShipmentsToCSV(filtered, 'shipments_customer.csv');
+            };
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching shipments.json:", error);
+          // 显示加载运单数据失败的错误
+           if (window.location.pathname.endsWith('dashboard.html')) {
+               document.getElementById('shipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
+               document.getElementById('customerShipmentTableContainer').innerHTML = `<p class="text-danger">加载运单数据失败: ${error.message}. 请检查 shipments.json 文件是否存在且格式正确。</p>`;
+           }
+        });
+  }
 });
-
-
-
-// 示例运单数据（实际可从 _data/shipments.json 读取后存入 localStorage）
-const defaultShipments = [
-  {
-    shipment_id: "NTS2304_Elec_10_20250506123000",
-    port_timezone: 8,
-    customer_code: "NTS-2304",
-    goods_short: "Elec",
-    goods_detail: "电子元件，型号ABC123",
-    package_count: 10,
-    transport_mode: "Sea",
-    estimated_days: 30,
-    status: "未发货",
-    created_at: "2025-05-06 12:30:00",
-    sent_date: "2025-05-07",
-    arrived_date: "2025-06-06",
-    picked_date: "2025-06-07"
-  }
-];
-
-// 初始化运单数据到 localStorage
-if (!localStorage.getItem('shipments')) {
-  localStorage.setItem('shipments', JSON.stringify(defaultShipments));
-}
-
-const defaultCustomers = [
-  {
-    customer_code: "NTS-2304",
-    name: "Ruixin",
-    contact: "+966 551234567",
-    country: "SA",
-    language: "ar",
-    timezone: 3
-  }
-];
-
-// 初始化客户数据到 localStorage
-if (!localStorage.getItem('customers')) {
-  localStorage.setItem('customers', JSON.stringify(defaultCustomers));
-}
 
 function getStatusBadge(status) {
   if (status.includes('已发货')) return `<span class="badge bg-success">${status}</span>`;
@@ -211,40 +298,3 @@ function parseCSV(csvText) {
     return obj;
   });
 }
-
-document.addEventListener('DOMContentLoaded', function () {
-  // 登录页面逻辑已在前面实现
-
-  // 看板页面逻辑
-  if (window.location.pathname.endsWith('dashboard.html')) {
-    const user = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
-    if (!user) {
-      window.location.href = 'login.html';
-      return;
-    }
-    document.getElementById('userRole').textContent = user.role === 'trader' ? '贸易商' : '客户';
-
-    document.getElementById('logoutBtn').onclick = function () {
-      sessionStorage.removeItem('currentUser');
-      window.location.href = 'login.html';
-    };
-
-    // 用fetch读取根目录下的shipments.json
-    fetch('/shipments.json')
-      .then(res => res.json())
-      .then(shipments => {
-        console.log("Fetched Shipments Data:", shipments);
-        if (user.role === 'trader') {
-          document.getElementById('traderPanel').style.display = '';
-          renderShipmentsTable(shipments, 'shipmentTableContainer', true);
-        } else if (user.role === 'customer') {
-          document.getElementById('customerPanel').style.display = '';
-          const myShipments = shipments.filter(s => s.client_code === user.customer_code);
-          renderShipmentsTable(myShipments, 'customerShipmentTableContainer', false);
-        }
-      })
-      .catch(error => {
-        console.error("Error fetching shipments.json:", error);
-      });
-  }
-});
